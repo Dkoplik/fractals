@@ -1,7 +1,7 @@
 use crate::app::logic::transform2d::Transform2D;
 
 /// Линия для рисования
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Line {
     /// Начало линии (отрезка).
     pub begin: egui::Pos2,

@@ -45,6 +45,7 @@ impl MidDisplacement {
 }
 
 /// Разделяет одну линию на 2 для midpoint displacement.
-fn split_line() -> (utils::Line, utils::Line) {
+fn split_line(line: &utils::Line, roughness: f32) -> (utils::Line, utils::Line) {
     // TODO по сути 1 шаг (операция над одной линией из всех) в midpoint displacement, интерфейс самому подогнать под нужный.
+    (utils::Line::default(), utils::Line::default())
 }

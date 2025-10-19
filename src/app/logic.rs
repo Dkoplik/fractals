@@ -5,6 +5,7 @@ pub mod l_system;
 pub mod transform2d;
 pub mod midpoint_displacement;
 pub mod utils;
+pub mod bezier;
 
 // --------------------------------------------------
 // Обработка области рисования (холст)

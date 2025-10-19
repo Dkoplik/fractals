@@ -1,15 +1,18 @@
-# athenian-transformations
-Лабораторная работа 4 по компьютерной графике на аффинные преобразования
+# fractals
+Лабораторная работа 5 по компьютерной графике.
 
 ## Задание
-Для выполнения [задания](https://edu.mmcs.sfedu.ru/mod/assign/view.php?id=15774) надо реализовать методы из `src/app/polygon.rs`.
+Для выполнения [задания](https://edu.mmcs.sfedu.ru/mod/assign/view.php?id=7874) надо реализовать методы из `src/app/logic/{l_system, midpoint_displacement, bezier}.rs`.
 
 - `src/main.rs` - тупо точка входа для запуска приложения
-- `src/app.rs` - само приложение (GUI) для демонстрации работы алгоритмов
+- `src/app.rs` - само приложение для демонстрации работы алгоритмов
 - `src/app/ui.rs` - UI приложения
-- `src/app/logic.rs` - логика приложения (решил разделить от UI, а то потом тяжело ориентироваться в коде)
-- `src/app/polygon.rs` - класс (struct) полигона. По сути, тут основная логика взаимодействия с полигонами
-- `src/app/polygon/transform2d.rs` - матрица аффинных преобразований. Все преобразования делаются через них.
+- `src/app/logic.rs` - логика приложения
+- `src/app/logic/bezier.rs` - реализация кривых Безье
+- `src/app/logic/l_system.rs` - реализация L-систем
+- `src/app/logic/midpoint_displacement.rs` - реализация Midpoint Displacement
+- `src/app/logic/transform2d.rs` - матрица преобразований с прошлой лабы, удобно для масштабирования фракталов.
+- `src/app/logic/utils.rs` - всякие вспомогательные функции
 
 ## Конфигурацию L-системы файлом
 Вид файла конфигурации для L-системы:

@@ -1,4 +1,4 @@
-use crate::app::logic::transform2d::Transform2D;
+use crate::app::logic::utils;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -40,28 +40,6 @@ pub struct LSystemConfig {
     color_delta: egui::Color32,
 }
 
-/// Линия, нарисованная L-системой
-#[derive(Debug, Clone)]
-struct Line {
-    /// Начало линии (отрезка).
-    begin: egui::Pos2,
-    /// Конец линии (отрезка).
-    end: egui::Pos2,
-    /// Ширина линии (отрезка).
-    width: f32,
-    /// Цвет линии (отрезка).
-    color: egui::Color32,
-}
-
-impl Line {
-    fn draw(&self, painter: &egui::Painter) {
-        painter.line(
-            vec![self.begin, self.end],
-            egui::epaint::PathStroke::new(self.width, self.color),
-        );
-    }
-}
-
 /// Текущая L-система с конфигурацией и итерацией.
 pub struct Lsystem {
     /// Конфигурация.
@@ -71,22 +49,23 @@ pub struct Lsystem {
     /// Текущая итерация.
     iter: u32,
     /// Текущие линии (изображение).
-    lines: Vec<Line>,
+    lines: Vec<utils::Line>,
 }
 
 impl Lsystem {
     pub fn new(config: LSystemConfig) -> Self {
         Self {
             cur_string: config.axiom.clone(),
-            iter: 0,
+            iter: 1,
             config,
             lines: Vec::new(), // TODO заполнить линиями из аксиомы
         }
     }
 
     /// Провести ещё одну итерацию L-системы.
-    pub fn iter_once() {
+    pub fn iter_once(&mut self) {
         // TODO cur_string - текущая итерация, над ней сделать ещё одну итерацию и построить линии в lines
+        self.iter += 1; // не забыть счётчик итераций увеличить
 
         /// Структура ниже в помощь для операций Save и Restore на стеке.
         /// Текущее состояние L-системы
@@ -102,62 +81,13 @@ impl Lsystem {
         }
     }
 
-    fn find_rect(&self) -> Option<egui::Rect> {
-        let mut pos_min: Option<egui::Pos2> = None;
-        let mut pos_max: Option<egui::Pos2> = None;
-        for line in &self.lines {
-            let x_min = line.begin.x.min(line.end.x);
-            let y_min = line.begin.y.min(line.end.y);
-            let x_max = line.begin.x.max(line.end.x);
-            let y_max = line.begin.y.max(line.end.y);
-
-            if let Some(pos_min) = &mut pos_min {
-                pos_min.x = pos_min.x.min(x_min);
-                pos_min.y = pos_min.y.min(y_min);
-            } else {
-                pos_min = Some(egui::Pos2::new(
-                    line.begin.x.min(line.end.x),
-                    line.begin.y.min(line.end.y),
-                ));
-            }
-
-            if let Some(pos_max) = &mut pos_max {
-                pos_max.x = pos_max.x.max(x_max);
-                pos_max.y = pos_max.y.max(y_max);
-            } else {
-                pos_max = Some(egui::Pos2::new(
-                    line.begin.x.max(line.end.x),
-                    line.begin.y.max(line.end.y),
-                ));
-            }
-        }
-
-        if let Some(pos_min) = pos_min && let Some(pos_max) = pos_max {
-            Some(egui::Rect::from_min_max(pos_min, pos_max))
-        } else {
-            None
-        }
+    /// Получить номер текущей итерации.
+    pub fn cur_iter_num(&self) -> u32 {
+        self.iter
     }
 
-    fn draw(&self, painter: &egui::Painter, area: egui::Rect, margin: f32) {
-        let sys_rect = self.find_rect();
-        if sys_rect.is_none() {
-            return;
-        }
-        let mut sys_rect = sys_rect.unwrap();
-
-        // scale image
-        let scale = (area.width() / sys_rect.width()).min(area.height() / sys_rect.height());
-        let transform = Transform2D::uniform_scaling(scale);
-        sys_rect.min = transform.apply_to_pos(sys_rect.min);
-        sys_rect.max = transform.apply_to_pos(sys_rect.max);
-
-        // center image
-        let delta_vec = area.center() - sys_rect.center();
-        transform = transform.multiply();
-
-
-        self.lines.iter().cloned()
+    pub fn draw(&self, painter: &egui::Painter, area: egui::Rect, margin: f32) {
+        utils::draw_lines(&self.lines, painter, area, margin);
     }
 }
 

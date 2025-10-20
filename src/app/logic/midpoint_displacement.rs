@@ -1,4 +1,5 @@
 use crate::app::logic::utils;
+use  rand::Rng;
 
 /// Реализация для midpoint displacement.
 pub struct MidDisplacement {
@@ -30,8 +31,16 @@ impl MidDisplacement {
 
     /// Провести ещё одну итерацию midpoint displacement.
     pub fn iter_once(&mut self) {
-        // TODO использовать функцию split_line в реализации
-        self.iter += 1; // не забыть счётчик итераций увеличить
+        let mut new_lines = Vec::new();
+        
+        for line in &self.lines {
+            let (left_line, right_line) = split_line(line, self.roughness);
+            new_lines.push(left_line);
+            new_lines.push(right_line);
+        }
+        
+        self.lines = new_lines;
+        self.iter += 1;
     }
 
     /// Получить номер текущей итерации.
@@ -46,6 +55,34 @@ impl MidDisplacement {
 
 /// Разделяет одну линию на 2 для midpoint displacement.
 fn split_line(line: &utils::Line, roughness: f32) -> (utils::Line, utils::Line) {
-    // TODO по сути 1 шаг (операция над одной линией из всех) в midpoint displacement, интерфейс самому подогнать под нужный.
-    (utils::Line::default(), utils::Line::default())
+    let begin = line.begin;
+    let end = line.end;
+    
+    let x = (begin.x + end.x) / 2.0;
+    let average_height = (begin.y + end.y) / 2.0;
+    
+    let len = (end.x - begin.x).abs();
+    
+    let random_range = roughness * len;
+    let mut rng = rand::rng();
+    let random_offset = rng.random_range(0.0 .. 2.0 * random_range) - random_range;
+    
+    // h = (hL + hR) / 2 + random(-R * L, R * L)
+    let h = average_height + random_offset;
+    
+    let mid_point = egui::Pos2::new(x, h);
+    let left_line = utils::Line {
+        begin,
+        end: mid_point,
+        width: line.width,
+        color: line.color,
+    };
+    let right_line = utils::Line {
+        begin: mid_point,
+        end,
+        width: line.width,
+        color: line.color,
+    };
+    
+    (left_line, right_line)
 }

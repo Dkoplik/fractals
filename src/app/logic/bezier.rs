@@ -1,94 +1,185 @@
-use eframe::glow::OFFSET;
-
 use crate::app::logic::utils;
 
-/// Составая кубическая кривая Безье.
 #[derive(Default)]
 pub struct BezierCurve {
-    /// Точки составной кривой.
-    /// Например, кривая из 2-х частей будет содержать точки P1, P2, P3, P4, P5, P6, P7,
-    /// где через P1, P4, P7 проходит кривая и P4 - общая точка для 2-х сегментов.
+    /// Все точки кривой: опорные и контрольные.
     points: Vec<egui::Pos2>,
-    /// Текущие линии (изображение).
+    /// Линии для визуализации.
     lines: Vec<utils::Line>,
 }
 
 impl BezierCurve {
-    /// Шаг визуализации кривой Безье.
-    static STEP: f32 = 1.0;
-    /// Расположение 2-ой опорной точки относительно 1-ой при их добавлении.
-    static OFFSET: egui::Vec2 = egui::Vec2::new(0.0, 15.0);
+    const STEP: f32 = 0.02;
 
     fn draw_points(&self, painter: &egui::Painter) {
-        for i in (0..self.points.len()).step_by(2) {
-            painter.line(
-                vec![self.points[i], self.points[i + 1]],
-                egui::epaint::PathStroke::new(1.0, egui::Color32::LIGHT_GRAY),
-            );
+        for (i, point) in self.points.iter().enumerate() {
+            let color = if i % 3 == 0 {
+                egui::Color32::LIGHT_BLUE
+            } else {
+                egui::Color32::LIGHT_RED
+            };
+            painter.circle_filled(*point, 4.0, color);
         }
-        self.points
-            .iter()
-            .for_each(|point| painter.circle_filled(point, 3.0, egui::Color32::DARK_BLUE));
     }
 
     pub fn draw(&self, painter: &egui::Painter) {
-        self.lines.iter().for_each(|line| line.draw(painter));
+        for i in (0..self.points.len()).step_by(3) {
+            if i + 1 < self.points.len() {
+                painter.line_segment(
+                    [self.points[i], self.points[i + 1]],
+                    egui::Stroke::new(1.0, egui::Color32::LIGHT_GRAY),
+                );
+            }
+            if i + 2 < self.points.len() {
+                painter.line_segment(
+                    [
+                        self.points[i + 2],
+                        self.points[i + 3.min(self.points.len() - 1)],
+                    ],
+                    egui::Stroke::new(1.0, egui::Color32::LIGHT_GRAY),
+                );
+            }
+        }
+
+        for line in &self.lines {
+            line.draw(painter);
+        }
+
         self.draw_points(painter);
     }
 
-    /// Найти индекс ближайшей опорной точки кривой к указанной позиции в пределах указанного радиуса.
-    fn get_point_index(&self, pos: egui::Pos2, r: f32) -> usize {
-        // TODO
-        0
-    }
-
-    /// Найти ближайшую опорную точку кривой к указанной позиции в пределах указанного радиуса.
-    pub fn get_point(&self, pos: egui::Pos2, r: f32) -> &egui::Pos2 {
-        let index = self.get_point_index(pos, r);
-        self.points[index]
-    }
-
-    /// Найти ближайшую опорную точку кривой к указанной позиции в пределах указанного радиуса.
-    pub fn get_point_mut(&mut self, pos: egui::Pos2, r: f32) -> &mut egui::Pos2 {
-        let index = self.get_point_index(pos, r);
-        self.points[index]
-    }
-
-    /// Обновить кривую.
-    pub fn update(&mut self, step: f32) {
-        // TODO по опорным точкам построить новый вектор self.lines,
-        // где каждая линия примерно длины step (через линии приблизительно рисуем кривую)
-        // Замечание, self.points может быть пустым или содержать только 2 точки.
-    }
-
-    /// Добавляет в кривую новую точку. Через указанную точку кривая должна проходить,
-    /// 2-ая точка в пару добавляется автоматически.
-    pub fn add_point(&mut self, pos: egui::Pos2) {
-        let pos2 = pos + OFFSET;
-
-        let cur_amount = self.points.len();
-        if cur_amount == 0 {
-            self.points.push(pos);
-            self.points.push(pos2);
+    fn get_point_index(&self, pos: egui::Pos2, r: f32) -> Option<usize> {
+        let mut min_d2 = r * r;
+        let mut closest = None;
+        for (i, p) in self.points.iter().enumerate() {
+            let d2 = p.distance_sq(pos);
+            if d2 < min_d2 {
+                min_d2 = d2;
+                closest = Some(i);
+            }
         }
-        else if cur_amount == 2 {
-            self.points.push(pos2);
-            self.points.push(pos);
+        closest
+    }
+
+    pub fn get_point_mut(&mut self, pos: egui::Pos2, r: f32) -> Option<&mut egui::Pos2> {
+        self.get_point_index(pos, r).map(|i| &mut self.points[i])
+    }
+
+    fn bezier_point(
+        p0: egui::Pos2,
+        p1: egui::Pos2,
+        p2: egui::Pos2,
+        p3: egui::Pos2,
+        t: f32,
+    ) -> egui::Pos2 {
+        let u = 1.0 - t;
+        let u2 = u * u;
+        let u3 = u2 * u;
+        let t2 = t * t;
+        let t3 = t2 * t;
+        egui::pos2(
+            u3 * p0.x + 3.0 * u2 * t * p1.x + 3.0 * u * t2 * p2.x + t3 * p3.x,
+            u3 * p0.y + 3.0 * u2 * t * p1.y + 3.0 * u * t2 * p2.y + t3 * p3.y,
+        )
+    }
+
+    pub fn update(&mut self) {
+        self.lines.clear();
+        if self.points.len() < 4 {
+            return;
         }
-        else {
-            let pos3 = *self.points.last().unwrap() + OFFSET;
-            self.points.push(pos3);
-            self.points.push(pos2);
-            self.points.push(pos);
+
+        for i in (0..self.points.len() - 3).step_by(3) {
+            let p0 = self.points[i];
+            let p1 = self.points[i + 1];
+            let p2 = self.points[i + 2];
+            let p3 = self.points[i + 3];
+
+            let mut prev = p0;
+            let mut t = Self::STEP;
+            while t <= 1.0 {
+                let cur = Self::bezier_point(p0, p1, p2, p3, t);
+                self.lines.push(utils::Line {
+                    begin: prev,
+                    end: cur,
+                    width: 2.0,
+                    color: egui::Color32::DARK_GREEN,
+                });
+                prev = cur;
+                t += Self::STEP;
+            }
         }
     }
 
-    /// Удалить точку рядом с указанной позицией.
+    pub fn add_point(&mut self, click_pos: egui::Pos2) {
+        let n = self.points.len();
+
+        if n % 3 == 0 {
+            self.points.push(click_pos);
+        } else if n % 3 == 1 {
+            let anchor = self.points[n - 1];
+            let prev_control = if n >= 3 { self.points[n - 2] } else { anchor };
+
+            let dir = (anchor - prev_control).normalized();
+            let v = click_pos - anchor;
+            let proj_len = v.dot(dir);
+
+            let c_next = anchor + dir * proj_len;
+            self.points.push(c_next);
+        } else {
+            self.points.push(click_pos);
+        }
+
+        self.update();
+    }
+
     pub fn delete_point(&mut self, pos: egui::Pos2, r: f32) {
-        let index = self.get_point_index(pos, r);
+        if self.points.len() < 4 {
+            self.clear();
+            return;
+        }
 
-        let beg = 0.max(index - ((index + 1) % 4));
-        let end = self.points.len().min(index + (2 - ((index + 1) % 4)));
-        self.points.drain(beg..=end);
+        if let Some(idx) = self.get_point_index(pos, r) {
+            if idx % 3 != 0 {
+                return;
+            }
+
+            if idx == 0 {
+                self.points.drain(0..4.min(self.points.len()));
+            } else if idx >= self.points.len() - 1 {
+                let start = self.points.len().saturating_sub(4);
+                self.points.drain(start..);
+            } else {
+                let start = idx.saturating_sub(2);
+                let end = (idx + 2).min(self.points.len());
+                self.points.drain(start..end);
+            }
+
+            self.update();
+        }
+    }
+
+    pub fn move_point(&mut self, index: usize, new_pos: egui::Pos2) {
+        if index >= self.points.len() {
+            return;
+        }
+
+        let delta = new_pos - self.points[index];
+        self.points[index] = new_pos;
+
+        if index % 3 == 0 {
+            if index > 0 {
+                self.points[index - 1] += delta;
+            }
+            if index + 1 < self.points.len() {
+                self.points[index + 1] += delta;
+            }
+        }
+        self.update();
+    }
+
+    pub fn clear(&mut self) {
+        self.points.clear();
+        self.lines.clear();
     }
 }

@@ -1,11 +1,11 @@
 use crate::app::FractalsApp;
 use egui::{Color32, Painter, Pos2, Response, Ui};
 
-pub mod l_system;
-pub mod transform2d;
-pub mod midpoint_displacement;
-pub mod utils;
 pub mod bezier;
+pub mod l_system;
+pub mod midpoint_displacement;
+pub mod transform2d;
+pub mod utils;
 
 // --------------------------------------------------
 // Обработка области рисования (холст)

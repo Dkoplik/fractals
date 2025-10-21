@@ -124,9 +124,6 @@ impl FractalsApp {
                             if ui.button("Перемещать").clicked() {
                                 self.instrument = crate::app::Instrument::MovePoint;
                             }
-                            if ui.button("Сбросить").clicked() {
-                                self.reset_bezier();
-                            }
                         });
                     }
                 });

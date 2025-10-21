@@ -13,9 +13,16 @@ impl BezierCurve {
 
     fn draw_points(&self, painter: &egui::Painter) {
         for (i, point) in self.points.iter().enumerate() {
-            if i % 3 != 0 {
-                painter.circle_filled(*point, 4.0, egui::Color32::LIGHT_RED);
-            }
+            let color = if i % 3 == 0 {
+                egui::Color32::LIGHT_GREEN
+            } else {
+                egui::Color32::LIGHT_RED
+            };
+            painter.circle_filled(*point, 4.0, color);
+
+            //if i % 3 != 0 {
+            //    painter.circle_filled(*point, 4.0, egui::Color32::LIGHT_RED);
+            //}
         }
     }
 
@@ -157,25 +164,24 @@ impl BezierCurve {
     }
 
     pub fn delete_point(&mut self, pos: egui::Pos2, r: f32) {
-        if self.points.len() < 4 {
-            self.clear();
-            return;
-        }
-
-        if let Some(idx) = self.get_point_index(pos, r) {
-            if idx % 3 != 0 {
-                return;
-            }
-
-            if idx == 0 {
-                self.points.drain(0..4.min(self.points.len()));
-            } else if idx >= self.points.len() - 1 {
-                let start = self.points.len().saturating_sub(4);
-                self.points.drain(start..);
+        if let Some(index) = self.get_point_index(pos, r) {
+            // Опорная точка (каждая 3-я)
+            if index % 3 == 0 {
+                // Если есть контрольные точки слева
+                if index >= 2 {
+                    // Удаляем предыдущие две (контрольные) + саму опорную
+                    let start = index - 2;
+                    self.points.drain(start..=index);
+                }
+                // Иначе (начальная опорная)
+                else {
+                    // Удаляем саму опорную и контрольные после неё (если есть)
+                    let end = (index + 3).min(self.points.len());
+                    self.points.drain(index..end);
+                }
             } else {
-                let start = idx.saturating_sub(2);
-                let end = (idx + 2).min(self.points.len());
-                self.points.drain(start..end);
+                // Контрольная точка
+                self.points.remove(index);
             }
 
             self.update();

@@ -31,6 +31,14 @@ impl BezierCurve {
                     egui::Stroke::new(1.0, egui::Color32::LIGHT_GRAY),
                 );
             }
+
+            if i + 1 < self.points.len() && i + 2 < self.points.len() {
+                painter.line_segment(
+                    [self.points[i + 1], self.points[i + 2]],
+                    egui::Stroke::new(1.0, egui::Color32::LIGHT_GRAY),
+                );
+            }
+
             if i + 2 < self.points.len() && i + 3 < self.points.len() {
                 painter.line_segment(
                     [self.points[i + 2], self.points[i + 3]],
@@ -102,7 +110,7 @@ impl BezierCurve {
                     begin: prev,
                     end: cur,
                     width: 2.0,
-                    color: egui::Color32::DARK_GREEN,
+                    color: egui::Color32::BLACK,
                 });
                 prev = cur;
                 t += Self::STEP;
@@ -116,15 +124,19 @@ impl BezierCurve {
         if n % 3 == 0 {
             self.points.push(click_pos);
         } else if n % 3 == 1 {
-            let anchor = self.points[n - 1];
-            let prev_control = if n >= 3 { self.points[n - 2] } else { anchor };
+            if n == 1 {
+                self.points.push(click_pos);
+            } else {
+                let anchor = self.points[n - 1];
+                let prev_control = if n >= 3 { self.points[n - 2] } else { anchor };
 
-            let dir = (anchor - prev_control).normalized();
-            let v = click_pos - anchor;
-            let proj_len = v.dot(dir);
+                let dir = (anchor - prev_control).normalized();
+                let v = click_pos - anchor;
+                let proj_len = v.dot(dir);
 
-            let c_next = anchor + dir * proj_len;
-            self.points.push(c_next);
+                let c_next = anchor + dir * proj_len;
+                self.points.push(c_next);
+            }
         } else {
             self.points.push(click_pos);
         }

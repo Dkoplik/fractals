@@ -38,6 +38,7 @@ impl FractalsApp {
             }
             crate::app::FractalType::MidpointDisplacement => {
                 self.midpoint_displacement.clear();
+                self.md_current_area = None;
             }
             crate::app::FractalType::BezierSpline => {
                 self.bezier_curve.clear();
@@ -62,6 +63,23 @@ impl FractalsApp {
                 );
             }
             crate::app::FractalType::MidpointDisplacement => {
+                let area_changed = self.md_current_area.map_or(true, |prev_area| {
+                    (prev_area.width() - area.width()).abs() > 0.0 ||
+                    (prev_area.height() - area.height()).abs() > 0.0
+                });
+
+                if area_changed {
+                    self.midpoint_displacement.init_for_area(area);
+                    
+                    // Восстанавливаем количество итераций
+                    // let current_iterations = self.current_iteration;
+                    // for _ in 1..current_iterations {
+                    //     self.midpoint_displacement.iter_once();
+                    // }
+                    self.current_iteration = self.midpoint_displacement.cur_iter_num() as usize;
+                    self.md_current_area = Some(area);
+                }
+                                
                 self.midpoint_displacement.draw(painter, area);
 
                 if self.md_show_steps {
@@ -190,6 +208,14 @@ impl FractalsApp {
 
         self.current_iteration = self.midpoint_displacement.cur_iter_num() as usize;
         println!("Генерация горного массива...");
+        if let Some(area) = self.md_current_area {
+            self.midpoint_displacement.init_for_area(area);
+            
+            for _ in 0..self.md_iterations {
+                self.midpoint_displacement.iter_once();
+            }
+            self.current_iteration = self.midpoint_displacement.cur_iter_num() as usize;
+        }
     }
 
     /// Выполнить итерацию для текущего фрактала.

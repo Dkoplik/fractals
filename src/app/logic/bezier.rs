@@ -164,26 +164,22 @@ impl BezierCurve {
     }
 
     pub fn delete_point(&mut self, pos: egui::Pos2, r: f32) {
-        if let Some(index) = self.get_point_index(pos, r) {
-            // Опорная точка (каждая 3-я)
-            if index % 3 == 0 {
-                // Если есть контрольные точки слева
-                if index >= 2 {
-                    // Удаляем предыдущие две (контрольные) + саму опорную
-                    let start = index - 2;
-                    self.points.drain(start..=index);
-                }
-                // Иначе (начальная опорная)
-                else {
-                    // Удаляем саму опорную и контрольные после неё (если есть)
-                    let end = (index + 3).min(self.points.len());
-                    self.points.drain(index..end);
-                }
-            } else {
-                // Контрольная точка
-                self.points.remove(index);
+        if self.points.len() < 4 {
+            self.clear();
+            return;
+        }
+        if let Some(idx) = self.get_point_index(pos, r) {
+            if idx % 3 != 0 {
+                return;
             }
-
+            if idx == 0 {
+                let end = (idx + 3).min(self.points.len());
+                self.points.drain(idx..end);
+            } else if idx + 1 == self.points.len() {
+                self.points.drain((idx - 2)..idx + 1);
+            } else {
+                self.points.drain((idx - 1)..(idx + 2));
+            }
             self.update();
         }
     }

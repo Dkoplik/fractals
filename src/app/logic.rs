@@ -37,7 +37,7 @@ impl FractalsApp {
                 // self.lsystem_data.clear();
             }
             crate::app::FractalType::MidpointDisplacement => {
-                // self.midpoint_data.clear();
+                self.midpoint_displacement.clear();
             }
             crate::app::FractalType::BezierSpline => {
                 self.bezier_curve.clear();
@@ -62,13 +62,22 @@ impl FractalsApp {
                 );
             }
             crate::app::FractalType::MidpointDisplacement => {
-                painter.text(
-                    area.center(),
-                    egui::Align2::CENTER_CENTER,
-                    "Горный массив будет здесь",
-                    egui::FontId::default(),
-                    Color32::BLACK,
+                self.midpoint_displacement.draw(painter, area);
+                
+                if self.md_show_steps {
+                let info_text = format!(
+                    "Итерация: {}",
+                    self.current_iteration,
                 );
+                
+                painter.text(
+                    area.left_top() + egui::Vec2::new(10.0, 20.0),
+                    egui::Align2::LEFT_TOP,
+                    info_text,
+                    egui::FontId::proportional(14.0),
+                    egui::Color32::DARK_GRAY,
+                );
+            }
             }
             crate::app::FractalType::BezierSpline => {
                 self.bezier_curve.draw(painter);
@@ -139,7 +148,15 @@ impl FractalsApp {
 
     /// Сгенерировать горный массив.
     pub fn generate_mountains(&mut self) {
-        // TODO: Реализовать генерацию гор
+            self.midpoint_displacement = midpoint_displacement::MidDisplacement::new(
+            self.md_roughness, 
+        );
+        
+        for _ in 0..self.md_iterations {
+            self.midpoint_displacement.iter_once();
+        }
+        
+        self.current_iteration = self.midpoint_displacement.cur_iter_num() as usize;
         println!("Генерация горного массива...");
     }
 
@@ -154,10 +171,8 @@ impl FractalsApp {
                 println!("Итерация L-системы...");
             }
             crate::app::FractalType::MidpointDisplacement => {
-                // if let Some(md) = &mut self.midpoint_displacement {
-                //     md.iter_once();
-                //     self.current_iteration = md.cur_iter_num();
-                // }
+                self.midpoint_displacement.iter_once();
+                self.current_iteration = self.midpoint_displacement.cur_iter_num() as usize;
                 println!("Итерация Midpoint Displacement...");
             }
             crate::app::FractalType::BezierSpline => {

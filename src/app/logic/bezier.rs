@@ -13,12 +13,9 @@ impl BezierCurve {
 
     fn draw_points(&self, painter: &egui::Painter) {
         for (i, point) in self.points.iter().enumerate() {
-            let color = if i % 3 == 0 {
-                egui::Color32::LIGHT_BLUE
-            } else {
-                egui::Color32::LIGHT_RED
-            };
-            painter.circle_filled(*point, 4.0, color);
+            if i % 3 != 0 {
+                painter.circle_filled(*point, 4.0, egui::Color32::LIGHT_RED);
+            }
         }
     }
 
@@ -121,24 +118,39 @@ impl BezierCurve {
     pub fn add_point(&mut self, click_pos: egui::Pos2) {
         let n = self.points.len();
 
-        if n % 3 == 0 {
-            self.points.push(click_pos);
-        } else if n % 3 == 1 {
-            if n == 1 {
+        match n % 3 {
+            0 => {
+                // Просто добавляем новую опорную точку
                 self.points.push(click_pos);
-            } else {
-                let anchor = self.points[n - 1];
-                let prev_control = if n >= 3 { self.points[n - 2] } else { anchor };
-
-                let dir = (anchor - prev_control).normalized();
-                let v = click_pos - anchor;
-                let proj_len = v.dot(dir);
-
-                let c_next = anchor + dir * proj_len;
-                self.points.push(c_next);
             }
-        } else {
-            self.points.push(click_pos);
+            1 => {
+                // Первая контрольная точка после опорной
+                if n == 1 {
+                    // Если это вторая точка в кривой, просто добавляем
+                    self.points.push(click_pos);
+                } else {
+                    let last_anchor = self.points[n - 1];
+                    let prev_control = self.points[n - 2];
+
+                    // Находим середину между последней опорной и предыдущей контрольной
+                    let mid = egui::pos2(
+                        (last_anchor.x + prev_control.x) * 0.5,
+                        (last_anchor.y + prev_control.y) * 0.5,
+                    );
+
+                    // Перемещаем последнюю опорную на середину
+                    let coord = self.points[n - 1];
+                    self.points[n - 1] = mid;
+                    self.points.push(coord);
+                    // Клик пользователя становится новой контрольной точкой
+                    self.points.push(click_pos);
+                }
+            }
+            2 => {
+                // Вторая контрольная просто добавляется
+                self.points.push(click_pos);
+            }
+            _ => unreachable!(),
         }
 
         self.update();

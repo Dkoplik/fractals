@@ -59,21 +59,20 @@ impl BezierCurve {
         self.draw_points(painter);
     }
 
-    pub fn get_point_index(&self, pos: egui::Pos2, r: f32) -> Option<usize> {
-        let mut min_d2 = r * r;
-        let mut closest = None;
-        for (i, p) in self.points.iter().enumerate() {
-            let d2 = p.distance_sq(pos);
-            if d2 < min_d2 {
-                min_d2 = d2;
-                closest = Some(i);
+    pub fn nearest_anchor_index(&self, pos: egui::Pos2, r: f32) -> Option<usize> {
+        if self.points.is_empty() {
+            return None;
+        }
+        let mut best: Option<usize> = None;
+        let mut best_d2 = r * r;
+        for i in (0..self.points.len()).step_by(3) {
+            let d2 = self.points[i].distance_sq(pos);
+            if d2 < best_d2 {
+                best_d2 = d2;
+                best = Some(i);
             }
         }
-        closest
-    }
-
-    pub fn get_point_mut(&mut self, pos: egui::Pos2, r: f32) -> Option<&mut egui::Pos2> {
-        self.get_point_index(pos, r).map(|i| &mut self.points[i])
+        best
     }
 
     fn bezier_point(
@@ -168,7 +167,7 @@ impl BezierCurve {
             self.clear();
             return;
         }
-        if let Some(idx) = self.get_point_index(pos, r) {
+        if let Some(idx) = self.nearest_anchor_index(pos, r) {
             if idx % 3 != 0 {
                 return;
             }
@@ -192,6 +191,7 @@ impl BezierCurve {
         let delta = new_pos - self.points[index];
         self.points[index] = new_pos;
 
+        // Если index — опорная точка (в нормальной структуре кратная 3), сдвинем соседние control
         if index % 3 == 0 {
             if index > 0 {
                 self.points[index - 1] += delta;
@@ -200,6 +200,8 @@ impl BezierCurve {
                 self.points[index + 1] += delta;
             }
         }
+
+        // Если это не опорная — оставляем как есть (двигали одну контрольную точку)
         self.update();
     }
 

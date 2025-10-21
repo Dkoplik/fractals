@@ -63,21 +63,18 @@ impl FractalsApp {
             }
             crate::app::FractalType::MidpointDisplacement => {
                 self.midpoint_displacement.draw(painter, area);
-                
+
                 if self.md_show_steps {
-                let info_text = format!(
-                    "Итерация: {}",
-                    self.current_iteration,
-                );
-                
-                painter.text(
-                    area.left_top() + egui::Vec2::new(10.0, 20.0),
-                    egui::Align2::LEFT_TOP,
-                    info_text,
-                    egui::FontId::proportional(14.0),
-                    egui::Color32::DARK_GRAY,
-                );
-            }
+                    let info_text = format!("Итерация: {}", self.current_iteration,);
+
+                    painter.text(
+                        area.left_top() + egui::Vec2::new(10.0, 20.0),
+                        egui::Align2::LEFT_TOP,
+                        info_text,
+                        egui::FontId::proportional(14.0),
+                        egui::Color32::DARK_GRAY,
+                    );
+                }
             }
             crate::app::FractalType::BezierSpline => {
                 self.bezier_curve.draw(painter);
@@ -94,6 +91,7 @@ impl FractalsApp {
     /// Обработать взаимодействие с холстом.
     pub fn handle_input(&mut self, response: &Response) {
         self.handle_click(response);
+        self.handle_drag(response);
     }
 
     /// Обработать клики по холсту.
@@ -110,6 +108,36 @@ impl FractalsApp {
         }
     }
 
+    /// Обработать перетаскивание для Безье (MovePoint).
+    fn handle_drag(&mut self, response: &Response) {
+        // Только если инструмент MovePoint
+        if self.fractal_type != crate::app::FractalType::BezierSpline {
+            return;
+        }
+
+        if self.instrument != crate::app::Instrument::MovePoint {
+            return;
+        }
+
+        // Если сейчас идёт drag ЛКМ
+        if response.dragged_by(egui::PointerButton::Primary) {
+            if let Some(pos) = response.hover_pos() {
+                if let Some(idx) = self.selected_point {
+                    // Перемещаем точку по текущей позиции курсора
+                    self.bezier_curve.move_point(idx, pos);
+                    self.point_count = self.bezier_curve.points.len();
+                }
+            }
+        } else {
+            // Если drag закончен/не идёт — сбросим выделение
+            // (при отпускании мыши selected_point станет None)
+            if response.hover_pos().is_none() || !response.dragged() {
+                // Не всегда нужно стирать тут, можно стирать при mouse up; но безопасно:
+                // self.selected_point = None;
+            }
+        }
+    }
+
     /// Обработать клик для кривых Безье.
     fn handle_bezier_click(&mut self, pos: Pos2) {
         match self.instrument {
@@ -122,7 +150,13 @@ impl FractalsApp {
                 self.point_count = self.bezier_curve.points.len();
             }
             crate::app::Instrument::MovePoint => {
-                self.selected_point = self.bezier_curve.get_point_index(pos, 10.0);
+                // Сначала пробуем выбрать ближайшую опорную точку (anchor)
+                self.selected_point = self.bezier_curve.nearest_anchor_index(pos, 10.0);
+
+                // Если опорная не найдена — fallback на любую ближайшую точку
+                if self.selected_point.is_none() {
+                    self.selected_point = self.bezier_curve.nearest_anchor_index(pos, 10.0);
+                }
             }
             _ => {}
         }
@@ -148,14 +182,12 @@ impl FractalsApp {
 
     /// Сгенерировать горный массив.
     pub fn generate_mountains(&mut self) {
-            self.midpoint_displacement = midpoint_displacement::MidDisplacement::new(
-            self.md_roughness, 
-        );
-        
+        self.midpoint_displacement = midpoint_displacement::MidDisplacement::new(self.md_roughness);
+
         for _ in 0..self.md_iterations {
             self.midpoint_displacement.iter_once();
         }
-        
+
         self.current_iteration = self.midpoint_displacement.cur_iter_num() as usize;
         println!("Генерация горного массива...");
     }

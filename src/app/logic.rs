@@ -25,50 +25,55 @@ impl FractalsApp {
 
         // цвет холста
         painter.rect_filled(response.rect, 0.0, Color32::WHITE);
-        // границы
-        // painter.rect_stroke(
-        //     response.rect,
-        //     0,
-        //     Stroke::new(1.0, Color32::GRAY),
-        //     StrokeKind::Inside,
-        // );
 
         (response, painter)
     }
 
-    /// Очистить холст от полигонов.
+    /// Очистить холст.
     pub fn clear_canvas(&mut self) {
-        self.polygons.clear();
-        self.selected_polygon_index = None;
-        self.selected_polygon_anchor = None;
-        self.selected_point = None;
-    }
-
-    /// Нарисовать текущий якорь.
-    fn draw_anchor(&self, painter: &Painter) {
-        if let Some(anchor) = self.selected_polygon_anchor {
-            painter.circle_filled(anchor, 5.0, Color32::RED);
-        }
-    }
-
-    /// Нарисовать выбранную точку.
-    fn draw_point(&self, painter: &Painter) {
-        if let Some(anchor) = self.selected_point {
-            painter.circle_filled(anchor, 5.0, Color32::GREEN);
-        }
-    }
-
-    /// Нарисовать холст.
-    pub fn draw_canvas(&mut self, painter: &Painter) {
-        for i in 0..self.polygons.len() {
-            if self.selected_polygon_index.is_some() && i == self.selected_polygon_index.unwrap() {
-                self.polygons[i].draw(&painter, &PolygonStyle::selected(), self.selected_point);
-            } else {
-                self.polygons[i].draw(&painter, &PolygonStyle::standard(), self.selected_point);
+        // Очистка данных для разных типов фракталов
+        match self.fractal_type {
+            crate::app::FractalType::LSystem => {
+                // self.lsystem_data.clear();
+            }
+            crate::app::FractalType::MidpointDisplacement => {
+                // self.midpoint_data.clear();
+            }
+            crate::app::FractalType::BezierSpline => {
+                self.bezier_curve.clear();
             }
         }
-        self.draw_anchor(painter);
-        self.draw_point(painter);
+        self.point_count = 0;
+        self.current_iteration = 0;
+    }
+
+    /// Нарисовать холст с текущим фракталом.
+    pub fn draw_canvas(&mut self, painter: &Painter) {
+        let area = painter.clip_rect();
+
+        match self.fractal_type {
+            crate::app::FractalType::LSystem => {
+                painter.text(
+                    area.center(),
+                    egui::Align2::CENTER_CENTER,
+                    "L-система будет здесь",
+                    egui::FontId::default(),
+                    Color32::BLACK,
+                );
+            }
+            crate::app::FractalType::MidpointDisplacement => {
+                painter.text(
+                    area.center(),
+                    egui::Align2::CENTER_CENTER,
+                    "Горный массив будет здесь",
+                    egui::FontId::default(),
+                    Color32::BLACK,
+                );
+            }
+            crate::app::FractalType::BezierSpline => {
+                self.bezier_curve.draw(painter);
+            }
+        }
     }
 }
 
@@ -80,226 +85,91 @@ impl FractalsApp {
     /// Обработать взаимодействие с холстом.
     pub fn handle_input(&mut self, response: &Response) {
         self.handle_click(response);
-        self.handle_drag(response);
     }
 
     /// Обработать клики по холсту.
     fn handle_click(&mut self, response: &Response) {
         if response.clicked_by(egui::PointerButton::Primary) {
-            let pos = response.hover_pos().unwrap();
-            match &self.instrument {
-                Instrument::AddVertex => self.add_vertex_to_selected_polygon(pos),
-                Instrument::Select => self.select_polygon(pos),
-                Instrument::SetAnchor => self.change_anchor(pos),
-                Instrument::SetPoint => self.change_point(pos),
-                _ => (),
+            if let Some(pos) = response.hover_pos() {
+                match self.fractal_type {
+                    crate::app::FractalType::BezierSpline => {
+                        self.handle_bezier_click(pos);
+                    }
+                    _ => {}
+                }
             }
         }
     }
 
-    /// Обработать перетаскивание по холсту.
-    fn handle_drag(&mut self, response: &Response) {
-        if response.drag_stopped_by(egui::PointerButton::Primary) {
-            self.drag_prev_pos = None;
-            return;
-        }
-
-        if !response.dragged_by(egui::PointerButton::Primary) {
-            return;
-        }
-
-        if let Some(drag_start) = self.drag_prev_pos
-            && let Some(drag_cur) = response.hover_pos()
-        {
-            match &self.instrument {
-                Instrument::Drag => self.drag_selected_polygon(drag_start, drag_cur),
-                Instrument::Rotate => self.rotate_selected_polygon(drag_start, drag_cur),
-                Instrument::Scale => self.scale_selected_polygon(drag_start, drag_cur),
-                _ => (),
+    /// Обработать клик для кривых Безье.
+    fn handle_bezier_click(&mut self, pos: Pos2) {
+        match self.instrument {
+            crate::app::Instrument::AddPoint => {
+                self.bezier_curve.add_point(pos);
+                self.point_count = self.bezier_curve.points.len();
             }
+            crate::app::Instrument::RemovePoint => {
+                self.bezier_curve.delete_point(pos, 10.0);
+                self.point_count = self.bezier_curve.points.len();
+            }
+            crate::app::Instrument::MovePoint => {
+                self.selected_point = self.bezier_curve.get_point_index(pos, 10.0);
+            }
+            _ => {}
         }
-
-        self.drag_prev_pos = response.hover_pos();
     }
 }
 
 // --------------------------------------------------
-// Взаимодействие с полигонами
+// Методы для работы с фракталами
 // --------------------------------------------------
 
 impl FractalsApp {
-    /// Добавить новую вершину к текущему полигону.
-    fn add_vertex_to_selected_polygon(&mut self, pos: Pos2) {
-        if let Some(index) = self.selected_polygon_index {
-            let polygon = &mut self.polygons[index];
-            polygon.add_vertex_pos(pos);
-        }
-        // Новый полигон
-        else {
-            let polygon = Polygon::from_pos(pos);
-            self.polygons.push(polygon);
-            self.selected_polygon_index = Some(self.polygons.len() - 1);
-        }
+    /// Загрузить L-систему из файла.
+    pub fn load_lsystem(&mut self) {
+        // TODO: Реализовать загрузку файла
+        println!("Загрузка L-системы...");
     }
 
-    /// Выбрать полигон в указанной точке.
-    fn select_polygon(&mut self, pos: Pos2) {
-        // обнулить прошлый якорь
-        self.selected_polygon_anchor = None;
+    /// Сгенерировать случайное дерево (L-система).
+    pub fn generate_random_tree(&mut self) {
+        // TODO: Реализовать генерацию случайного дерева
+        println!("Генерация случайного дерева...");
+    }
 
-        for i in 0..self.polygons.len() {
-            if self.polygons[i].contains_pos(pos) {
-                self.selected_polygon_index = Some(i);
-                return;
+    /// Сгенерировать горный массив.
+    pub fn generate_mountains(&mut self) {
+        // TODO: Реализовать генерацию гор
+        println!("Генерация горного массива...");
+    }
+
+    /// Выполнить итерацию для текущего фрактала.
+    pub fn iterate_fractal(&mut self) {
+        match self.fractal_type {
+            crate::app::FractalType::LSystem => {
+                // if let Some(lsystem) = &mut self.lsystem {
+                //     lsystem.iter_once();
+                //     self.current_iteration = lsystem.cur_iter_num();
+                // }
+                println!("Итерация L-системы...");
             }
-        }
-        self.selected_polygon_index = None;
-    }
-
-    /// Выбрать якорь для операций над полигоном.
-    fn change_anchor(&mut self, pos: Pos2) {
-        self.selected_polygon_anchor = Some(pos);
-    }
-
-    /// Выбрать точку для проверки положения относительно ребёр.
-    fn change_point(&mut self, pos: Pos2) {
-        self.selected_point = Some(pos);
-    }
-
-    /// Переместить выбранный полигон параллельно координатным осям.
-    fn drag_selected_polygon(&mut self, start: Pos2, end: Pos2) {
-        if let Some(index) = self.selected_polygon_index {
-            let delta = end - start;
-            let polygon = &mut self.polygons[index];
-            polygon.apply_transform(Transform2D::translation(delta.x, delta.y));
-
-            #[cfg(debug_assertions)]
-            println!("drag with start {:#?} end {:#?}", start, end);
-        }
-    }
-
-    /// Повернуть выбранный полигон через вектор смещения.
-    fn rotate_selected_polygon(&mut self, start: Pos2, end: Pos2) {
-        if let Some(index) = self.selected_polygon_index {
-            let polygon = &mut self.polygons[index];
-
-            // Задан якорь для вращения
-            if let Some(anchor) = self.selected_polygon_anchor {
-                let angle = calculate_rotation_angle(anchor, start, end);
-                polygon.apply_transform(Transform2D::rotation_around_pos(angle, anchor));
-
-                #[cfg(debug_assertions)]
-                println!("rotate relative to {:#?} with angle {:#?}", anchor, angle);
+            crate::app::FractalType::MidpointDisplacement => {
+                // if let Some(md) = &mut self.midpoint_displacement {
+                //     md.iter_once();
+                //     self.current_iteration = md.cur_iter_num();
+                // }
+                println!("Итерация Midpoint Displacement...");
             }
-            // Просто повернуть относительно центра
-            else {
-                let center = polygon.get_center();
-                let angle = calculate_rotation_angle(center, start, end);
-                polygon.apply_transform(Transform2D::rotation_around_pos(angle, center));
-
-                #[cfg(debug_assertions)]
-                println!(
-                    "rotate relative to center {:#?} with angle {:#?}",
-                    center, angle
-                );
+            crate::app::FractalType::BezierSpline => {
+                // Для Безье итерации не применяются
             }
         }
     }
 
-    /// Изменить размер полигона через вектор смещения.
-    fn scale_selected_polygon(&mut self, start: Pos2, end: Pos2) {
-        if let Some(index) = self.selected_polygon_index {
-            let polygon = &mut self.polygons[index];
-
-            // Задан якорь для изменения размера
-            if let Some(anchor) = self.selected_polygon_anchor {
-                let (sx, sy) = calculate_scale(anchor, start, end);
-                polygon.apply_transform(Transform2D::scaling_around_pos(sx, sy, anchor));
-
-                #[cfg(debug_assertions)]
-                println!(
-                    "scale relative to {:#?} with scale x:{} y:{}",
-                    anchor, sx, sy
-                );
-            }
-            // Просто растянуть относительно центра
-            else {
-                let center = polygon.get_center();
-                let (sx, sy) = calculate_scale(center, start, end);
-                polygon.apply_transform(Transform2D::scaling_around_pos(sx, sy, center));
-
-                #[cfg(debug_assertions)]
-                println!(
-                    "scale relative to center {:#?} with scale x:{} y:{}",
-                    center, sx, sy
-                );
-            }
-        }
+    /// Сбросить кривые Безье.
+    pub fn reset_bezier(&mut self) {
+        self.bezier_curve.clear();
+        self.point_count = 0;
+        self.selected_point = None;
     }
-}
-
-#[derive(Default)]
-pub enum Instrument {
-    #[default]
-    AddVertex,
-    Select,
-    SetAnchor,
-    SetPoint,
-    Drag,
-    Rotate,
-    Scale,
-}
-
-impl ToString for Instrument {
-    fn to_string(&self) -> String {
-        match self {
-            Self::AddVertex => String::from("добавить вершину"),
-            Self::Select => String::from("выбрать полигон"),
-            Self::SetAnchor => String::from("изменить якорь полигона"),
-            Self::SetPoint => String::from("изменить точку"),
-            Self::Drag => String::from("перетащить полигон"),
-            Self::Rotate => String::from("повернуть полигон"),
-            Self::Scale => String::from("изменить размер полигона"),
-        }
-    }
-}
-
-/// Считает угол поворота в раиданах на основе смещения относительно какого-то центра.
-fn calculate_rotation_angle(center: Pos2, start: Pos2, end: Pos2) -> f32 {
-    let start_vec = (start.x - center.x, start.y - center.y);
-    let end_vec = (end.x - center.x, end.y - center.y);
-
-    let start_angle = start_vec.1.atan2(start_vec.0);
-    let end_angle = end_vec.1.atan2(end_vec.0);
-
-    let mut angle = start_angle - end_angle;
-    let pi = std::f32::consts::PI;
-    while angle > pi {
-        angle -= 2.0 * pi;
-    }
-    while angle < -pi {
-        angle += 2.0 * pi;
-    }
-
-    angle
-}
-
-/// Считает растяжение на основе смещения относительно какого-то центра.
-fn calculate_scale(center: Pos2, start: Pos2, end: Pos2) -> (f32, f32) {
-    let start_vec = start - center;
-    let end_vec = end - center;
-
-    let scale_x = if start_vec.x.abs() < f32::EPSILON {
-        1.0
-    } else {
-        end_vec.x / start_vec.x
-    };
-
-    let scale_y = if start_vec.y.abs() < f32::EPSILON {
-        1.0
-    } else {
-        end_vec.y / start_vec.y
-    };
-
-    (scale_x, scale_y)
 }

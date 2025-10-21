@@ -3,7 +3,7 @@ use crate::app::logic::utils;
 #[derive(Default)]
 pub struct BezierCurve {
     /// Все точки кривой: опорные и контрольные.
-    points: Vec<egui::Pos2>,
+    pub points: Vec<egui::Pos2>,
     /// Линии для визуализации.
     lines: Vec<utils::Line>,
 }
@@ -23,6 +23,7 @@ impl BezierCurve {
     }
 
     pub fn draw(&self, painter: &egui::Painter) {
+        // Рисование контрольных линий
         for i in (0..self.points.len()).step_by(3) {
             if i + 1 < self.points.len() {
                 painter.line_segment(
@@ -30,7 +31,7 @@ impl BezierCurve {
                     egui::Stroke::new(1.0, egui::Color32::LIGHT_GRAY),
                 );
             }
-            if i + 3 < self.points.len() {
+            if i + 2 < self.points.len() && i + 3 < self.points.len() {
                 painter.line_segment(
                     [self.points[i + 2], self.points[i + 3]],
                     egui::Stroke::new(1.0, egui::Color32::LIGHT_GRAY),
@@ -38,6 +39,7 @@ impl BezierCurve {
             }
         }
 
+        // Рисование кривых Безье
         for line in &self.lines {
             line.draw(painter);
         }
@@ -45,7 +47,7 @@ impl BezierCurve {
         self.draw_points(painter);
     }
 
-    fn get_point_index(&self, pos: egui::Pos2, r: f32) -> Option<usize> {
+    pub fn get_point_index(&self, pos: egui::Pos2, r: f32) -> Option<usize> {
         let mut min_d2 = r * r;
         let mut closest = None;
         for (i, p) in self.points.iter().enumerate() {

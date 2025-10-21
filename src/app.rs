@@ -1,6 +1,11 @@
 pub mod logic;
 pub mod ui;
 
+use crate::app::logic::bezier;
+use crate::app::logic::l_system;
+use crate::app::logic::midpoint_displacement;
+use egui::Pos2;
+
 // --------------------------------------------------
 // Базовое определение приложения
 // --------------------------------------------------
@@ -50,6 +55,15 @@ pub struct FractalsApp {
     pub painter_height: f32,
     pub point_count: usize,
     pub current_iteration: usize,
+
+    // Временные данные для разных фракталов
+    pub lsystem: Option<l_system::Lsystem>,
+    pub midpoint_displacement: Option<midpoint_displacement::MidDisplacement>,
+    pub bezier_curve: bezier::BezierCurve,
+
+    // Для управления
+    pub selected_point: Option<usize>,
+    pub drag_prev_pos: Option<Pos2>,
 }
 
 impl Default for FractalsApp {
@@ -82,6 +96,15 @@ impl Default for FractalsApp {
             painter_height: 600.0,
             point_count: 0,
             current_iteration: 0,
+
+            // Временные данные
+            lsystem: None,
+            midpoint_displacement: None,
+            bezier_curve: bezier::BezierCurve::default(),
+
+            // Для управления
+            selected_point: None,
+            drag_prev_pos: None,
         }
     }
 }
@@ -89,7 +112,7 @@ impl Default for FractalsApp {
 impl FractalsApp {
     /// Инициализация приложения.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        // белая тея
+        // белая тема
         cc.egui_ctx.set_theme(egui::Theme::Light);
         Self::default()
     }

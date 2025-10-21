@@ -30,12 +30,9 @@ impl BezierCurve {
                     egui::Stroke::new(1.0, egui::Color32::LIGHT_GRAY),
                 );
             }
-            if i + 2 < self.points.len() {
+            if i + 3 < self.points.len() {
                 painter.line_segment(
-                    [
-                        self.points[i + 2],
-                        self.points[i + 3.min(self.points.len() - 1)],
-                    ],
+                    [self.points[i + 2], self.points[i + 3]],
                     egui::Stroke::new(1.0, egui::Color32::LIGHT_GRAY),
                 );
             }

@@ -93,18 +93,34 @@ impl FractalsApp {
                     // Настройки для Midpoint Displacement
                     if self.fractal_type == crate::app::FractalType::MidpointDisplacement {
                         ui.label("Алгоритм Midpoint Displacement:");
-                        if ui.button("Сгенерировать горы").clicked() {
-                            self.generate_mountains();
-                        }
+                        
+                        ui.horizontal(|ui| {
+                            if ui.button("Сгенерировать").clicked() {
+                                self.generate_mountains();
+                            }
+                            if ui.button("Следующая итерация").clicked() {
+                                self.iterate_fractal();
+                            }
+                        });
 
+                        ui.separator();
+                        
+                        ui.label("Параметры генерации:");
                         ui.add(
                             egui::Slider::new(&mut self.md_roughness, 0.1..=2.0)
-                                .text("Шероховатость"),
+                                .text("Шероховатость")
                         );
-                        ui.add(egui::Slider::new(&mut self.md_iterations, 1..=12).text("Итерации"));
-                        ui.add(egui::Slider::new(&mut self.md_seed, 0..=1000).text("Сид"));
+                        ui.add(
+                            egui::Slider::new(&mut self.md_iterations, 1..=12)
+                                .text("Начальные итерации")
+                        );
 
-                        ui.checkbox(&mut self.md_show_steps, "Показывать шаги");
+                        ui.checkbox(&mut self.md_show_steps, "Показывать информацию");
+                        
+                        ui.separator();
+                        
+                        // Информация о текущем состоянии
+                        ui.label(format!("Текущая итерация: {}", self.midpoint_displacement.cur_iter_num()));
                     }
 
                     // Настройки для сплайнов Безье

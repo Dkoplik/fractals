@@ -40,9 +40,8 @@ pub struct FractalsApp {
     pub lsystem_thickness: bool,
 
     // Поля для Midpoint Displacement
-    pub md_roughness: f64,
-    pub md_iterations: usize,
-    pub md_seed: u64,
+    pub md_roughness: f32,
+    pub md_iterations: u32,
     pub md_show_steps: bool,
 
     // Поля для сплайнов Безье
@@ -58,7 +57,7 @@ pub struct FractalsApp {
 
     // Временные данные для разных фракталов
     pub lsystem: Option<l_system::Lsystem>,
-    pub midpoint_displacement: Option<midpoint_displacement::MidDisplacement>,
+    pub midpoint_displacement: midpoint_displacement::MidDisplacement,
     pub bezier_curve: bezier::BezierCurve,
 
     // Для управления
@@ -68,6 +67,7 @@ pub struct FractalsApp {
 
 impl Default for FractalsApp {
     fn default() -> Self {
+        let md_roughness = 1.0;
         Self {
             fractal_type: FractalType::LSystem,
             instrument: Instrument::None,
@@ -81,9 +81,8 @@ impl Default for FractalsApp {
             lsystem_thickness: false,
 
             // Midpoint Displacement по умолчанию
-            md_roughness: 1.0,
+            md_roughness,
             md_iterations: 8,
-            md_seed: 42,
             md_show_steps: false,
 
             // Сплайны Безье по умолчанию
@@ -99,7 +98,8 @@ impl Default for FractalsApp {
 
             // Временные данные
             lsystem: None,
-            midpoint_displacement: None,
+            midpoint_displacement: midpoint_displacement::MidDisplacement::new(md_roughness),
+            // midpoint_displacement: None,
             bezier_curve: bezier::BezierCurve::default(),
 
             // Для управления

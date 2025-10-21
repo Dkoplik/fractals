@@ -5,27 +5,28 @@ use  rand::Rng;
 pub struct MidDisplacement {
     /// Шероховатость (R из формулы на презе).
     roughness: f32,
-    /// Цвет линии.
-    color: egui::Color32,
     /// Текущая итерация.
     iter: u32,
     /// Текущие линии (изображение).
     lines: Vec<utils::Line>,
+// base_width: f32,
+// base_height: f32
 }
 
 impl MidDisplacement {
-    pub fn new(roughness: f32, color: egui::Color32) -> Self {
+    pub fn new(roughness: f32) -> Self {
         let starter_line = utils::Line {
-            begin: egui::Pos2::new(0.0, 0.0),
-            end: egui::Pos2::new(1.0, 0.0),
+            begin: egui::Pos2::new(0.0, 300.0),    // Начало слева по центру
+            end: egui::Pos2::new(900.0, 300.0), 
             width: 1.0,
-            color,
+            color: egui::Color32::BLACK,
         };
         Self {
             roughness,
-            color,
-            iter: 1,
+            iter: 0,
             lines: vec![starter_line],
+            // base_width: 1.0,  // Не используется в этом подходе
+            // base_height: 1.0,
         }
     }
 
@@ -48,8 +49,21 @@ impl MidDisplacement {
         self.iter
     }
 
-    pub fn draw(&self, painter: &egui::Painter, area: egui::Rect, margin: f32) {
-        utils::draw_lines(&self.lines, painter, area, margin);
+    pub fn draw(&self, painter: &egui::Painter, area: egui::Rect) {
+        utils::draw_lines(&self.lines, painter, area, 0.0);
+    }
+
+    /// Очистить данные
+    pub fn clear(&mut self) {
+        self.lines.clear();
+        let starter_line = utils::Line {
+            begin: egui::Pos2::new(0.0, 300.0),    // Начало слева по центру
+            end: egui::Pos2::new(900.0, 300.0), 
+            width: 1.0,
+            color: egui::Color32::BLACK,
+        };
+        self.lines = vec![starter_line];
+        self.iter = 1;
     }
 }
 
@@ -65,7 +79,7 @@ fn split_line(line: &utils::Line, roughness: f32) -> (utils::Line, utils::Line) 
     
     let random_range = roughness * len;
     let mut rng = rand::rng();
-    let random_offset = rng.random_range(0.0 .. 2.0 * random_range) - random_range;
+    let random_offset = rng.random_range(0.0 .. 2.0) * random_range - random_range;
     
     // h = (hL + hR) / 2 + random(-R * L, R * L)
     let h = average_height + random_offset;

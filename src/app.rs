@@ -43,6 +43,7 @@ pub struct FractalsApp {
     pub md_roughness: f32,
     pub md_iterations: u32,
     pub md_show_steps: bool,
+    pub md_current_area: Option<egui::Rect>,
 
     // Поля для сплайнов Безье
     pub bezier_segments: usize,
@@ -67,7 +68,7 @@ pub struct FractalsApp {
 
 impl Default for FractalsApp {
     fn default() -> Self {
-        let md_roughness = 1.0;
+        let md_roughness = 0.5;
         Self {
             fractal_type: FractalType::LSystem,
             instrument: Instrument::None,
@@ -84,6 +85,7 @@ impl Default for FractalsApp {
             md_roughness,
             md_iterations: 8,
             md_show_steps: false,
+            md_current_area: None,
 
             // Сплайны Безье по умолчанию
             bezier_segments: 50,

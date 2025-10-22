@@ -1,0 +1,12 @@
+X 20 -90
+F -> FF
+X -> F[+X]F[-X]+X
+F -> FORWARD 1
+- -> ROTATE RANDOM - 15
++ -> ROTATE RANDOM + 15
+[ -> SAVE
+] -> RESTORE
+COLOR = (140, 40, 20)
+COLOR_DELTA = (0, 1, 0)
+WIDTH = 12
+WIDTH_DELTA = -0.03

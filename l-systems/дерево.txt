@@ -1,0 +1,10 @@
+X 20 -90
+F -> FF
+X -> F[+X]F[-X]+X
+F -> FORWARD 1
+- -> ROTATE -
++ -> ROTATE +
+[ -> SAVE
+] -> RESTORE
+COLOR = (140, 40, 20)
+COLOR_DELTA = (0, 1, 0)

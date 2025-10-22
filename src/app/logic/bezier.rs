@@ -121,42 +121,69 @@ impl BezierCurve {
         }
     }
 
+    // вычисляет контрольные точки для обеспечения C¹-непрерывности
+    fn calculate_control_points(&mut self) {
+        if self.points.len() < 4 {
+            return;
+        }
+
+        for i in (3..self.points.len() - 3).step_by(3) {
+            let prev_anchor = self.points[i - 3];
+            let curr_anchor = self.points[i];
+            let next_anchor = self.points[i + 3];
+
+            let tangent_direction = (next_anchor - prev_anchor) * 0.25;
+
+            self.points[i - 1] = curr_anchor - tangent_direction;
+            self.points[i + 1] = curr_anchor + tangent_direction;
+        }
+
+        if self.points.len() >= 4 {
+            let first_anchor = self.points[0];
+            let second_anchor = self.points[3];
+            let first_tangent = (second_anchor - first_anchor) * 0.3;
+            self.points[1] = first_anchor + first_tangent;
+
+            let last_index = self.points.len() - 1;
+            let last_anchor = self.points[last_index];
+            let prev_anchor = self.points[last_index - 3];
+            let last_tangent = (last_anchor - prev_anchor) * 0.3;
+            self.points[last_index - 1] = last_anchor - last_tangent;
+        }
+    }
+
     pub fn add_point(&mut self, click_pos: egui::Pos2) {
         let n = self.points.len();
 
-        match n % 3 {
+        match n {
             0 => {
-                // Просто добавляем новую опорную точку
+                // Первая точка - просто добавляем опорную
                 self.points.push(click_pos);
             }
             1 => {
-                // Первая контрольная точка после опорной
-                if n == 1 {
-                    // Если это вторая точка в кривой, просто добавляем
-                    self.points.push(click_pos);
-                } else {
-                    let last_anchor = self.points[n - 1];
-                    let prev_control = self.points[n - 2];
+                // Вторая точка - добавляем первую контрольную и вторую опорную
+                let first_anchor = self.points[0];
+                let control_offset = (click_pos - first_anchor) * 0.3;
 
-                    // Находим середину между последней опорной и предыдущей контрольной
-                    let mid = egui::pos2(
-                        (last_anchor.x + prev_control.x) * 0.5,
-                        (last_anchor.y + prev_control.y) * 0.5,
-                    );
+                self.points.push(first_anchor + control_offset);
+                self.points.push(click_pos - control_offset);
+                self.points.push(click_pos); // Опорная
+            }
+            _ => {
+                // Добавляем новую опорную точку
+                let last_anchor_index = ((self.points.len() - 1) / 3) * 3;
+                let last_anchor = self.points[last_anchor_index];
 
-                    // Перемещаем последнюю опорную на середину
-                    let coord = self.points[n - 1];
-                    self.points[n - 1] = mid;
-                    self.points.push(coord);
-                    // Клик пользователя становится новой контрольной точкой
-                    self.points.push(click_pos);
-                }
+                // Вычисляем контрольные точки
+                let control_offset = (click_pos - last_anchor) * 0.3;
+
+                self.points.push(last_anchor + control_offset);
+                self.points.push(click_pos - control_offset);
+                self.points.push(click_pos); // Опорная
+
+                // Пересчитываем все контрольные точки для гладкости
+                self.calculate_control_points();
             }
-            2 => {
-                // Вторая контрольная просто добавляется
-                self.points.push(click_pos);
-            }
-            _ => unreachable!(),
         }
 
         self.update();
@@ -191,7 +218,7 @@ impl BezierCurve {
         let delta = new_pos - self.points[index];
         self.points[index] = new_pos;
 
-        // Если index — опорная точка (в нормальной структуре кратная 3), сдвинем соседние control
+        // Если index — опорная точка, сдвинем соседние control
         if index % 3 == 0 {
             if index > 0 {
                 self.points[index - 1] += delta;
@@ -201,7 +228,6 @@ impl BezierCurve {
             }
         }
 
-        // Если это не опорная — оставляем как есть (двигали одну контрольную точку)
         self.update();
     }
 

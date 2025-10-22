@@ -150,7 +150,7 @@ impl FractalsApp {
                 self.point_count = self.bezier_curve.points.len();
             }
             crate::app::Instrument::MovePoint => {
-                // Сначала пробуем выбрать ближайшую опорную точку (anchor)
+                // Сначала пробуем выбрать ближайшую опорную точку
                 self.selected_point = self.bezier_curve.nearest_anchor_index(pos, 10.0);
 
                 // Если опорная не найдена — fallback на любую ближайшую точку

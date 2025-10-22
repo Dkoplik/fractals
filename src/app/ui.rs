@@ -1,3 +1,5 @@
+use egui::Label;
+
 use crate::app::FractalsApp;
 
 // --------------------------------------------------
@@ -66,28 +68,13 @@ impl FractalsApp {
                             self.load_lsystem();
                         }
 
-                        if ui.button("Случайное дерево").clicked() {
-                            self.generate_random_tree();
-                        }
-
                         if ui.button("Следующая итерация").clicked() {
                             self.iterate_fractal();
                         }
 
-                        ui.add(
-                            egui::Slider::new(&mut self.lsystem_iterations, 1..=10)
-                                .text("Итерации"),
-                        );
-                        ui.add(
-                            egui::Slider::new(&mut self.lsystem_angle, 0.0..=180.0).text("Угол"),
-                        );
-                        ui.add(
-                            egui::Slider::new(&mut self.lsystem_length, 1.0..=100.0).text("Длина"),
-                        );
-
-                        ui.checkbox(&mut self.lsystem_randomness, "Случайность");
-                        ui.checkbox(&mut self.lsystem_colors, "Цвета ветвей");
-                        ui.checkbox(&mut self.lsystem_thickness, "Толщина ветвей");
+                        if let Some(l) = &self.lsystem {
+                            ui.label(l.to_string());
+                        }
                     }
 
                     // Настройки для Midpoint Displacement

@@ -28,42 +28,34 @@ pub enum Instrument {
 /// Приложение-демонстрация фракталов.
 pub struct FractalsApp {
     // Общие поля
-    pub fractal_type: FractalType,
-    pub instrument: Instrument,
-
-    // Поля для L-систем
-    pub lsystem_iterations: usize,
-    pub lsystem_angle: f64,
-    pub lsystem_length: f64,
-    pub lsystem_randomness: bool,
-    pub lsystem_colors: bool,
-    pub lsystem_thickness: bool,
+    fractal_type: FractalType,
+    instrument: Instrument,
 
     // Поля для Midpoint Displacement
-    pub md_roughness: f32,
-    pub md_iterations: u32,
-    pub md_show_steps: bool,
-    pub md_current_area: Option<egui::Rect>,
+    md_roughness: f32,
+    md_iterations: u32,
+    md_show_steps: bool,
+    md_current_area: Option<egui::Rect>,
 
     // Поля для сплайнов Безье
-    pub bezier_segments: usize,
-    pub bezier_show_points: bool,
-    pub bezier_show_control: bool,
+    bezier_segments: usize,
+    bezier_show_points: bool,
+    bezier_show_control: bool,
 
     // Другие необходимые поля
-    pub painter_width: f32,
-    pub painter_height: f32,
-    pub point_count: usize,
-    pub current_iteration: usize,
+    painter_width: f32,
+    painter_height: f32,
+    point_count: usize,
+    current_iteration: usize,
 
     // Временные данные для разных фракталов
-    pub lsystem: Option<l_system::Lsystem>,
-    pub midpoint_displacement: midpoint_displacement::MidDisplacement,
-    pub bezier_curve: bezier::BezierCurve,
+    lsystem: Option<l_system::Lsystem>,
+    midpoint_displacement: midpoint_displacement::MidDisplacement,
+    bezier_curve: bezier::BezierCurve,
 
     // Для управления
-    pub selected_point: Option<usize>,
-    pub drag_prev_pos: Option<Pos2>,
+    selected_point: Option<usize>,
+    drag_prev_pos: Option<Pos2>,
 }
 
 impl Default for FractalsApp {
@@ -72,14 +64,6 @@ impl Default for FractalsApp {
         Self {
             fractal_type: FractalType::LSystem,
             instrument: Instrument::None,
-
-            // L-системы по умолчанию
-            lsystem_iterations: 4,
-            lsystem_angle: 25.0,
-            lsystem_length: 10.0,
-            lsystem_randomness: false,
-            lsystem_colors: false,
-            lsystem_thickness: false,
 
             // Midpoint Displacement по умолчанию
             md_roughness,

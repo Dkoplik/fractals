@@ -54,23 +54,27 @@ impl FractalsApp {
 
         match self.fractal_type {
             crate::app::FractalType::LSystem => {
-                painter.text(
-                    area.center(),
-                    egui::Align2::CENTER_CENTER,
-                    "L-система будет здесь",
-                    egui::FontId::default(),
-                    Color32::BLACK,
-                );
+                if let Some(ls) = &self.lsystem {
+                    ls.draw(painter, area, 5.0);
+                } else {
+                    painter.text(
+                        area.center(),
+                        egui::Align2::CENTER_CENTER,
+                        "L-система будет здесь",
+                        egui::FontId::default(),
+                        Color32::BLACK,
+                    );
+                }
             }
             crate::app::FractalType::MidpointDisplacement => {
                 let area_changed = self.md_current_area.map_or(true, |prev_area| {
-                    (prev_area.width() - area.width()).abs() > 0.0 ||
-                    (prev_area.height() - area.height()).abs() > 0.0
+                    (prev_area.width() - area.width()).abs() > 0.0
+                        || (prev_area.height() - area.height()).abs() > 0.0
                 });
 
                 if area_changed {
                     self.midpoint_displacement.init_for_area(area);
-                    
+
                     // Восстанавливаем количество итераций
                     // let current_iterations = self.current_iteration;
                     // for _ in 1..current_iterations {
@@ -79,7 +83,7 @@ impl FractalsApp {
                     self.current_iteration = self.midpoint_displacement.cur_iter_num() as usize;
                     self.md_current_area = Some(area);
                 }
-                                
+
                 self.midpoint_displacement.draw(painter, area);
 
                 if self.md_show_steps {
@@ -188,14 +192,15 @@ impl FractalsApp {
 impl FractalsApp {
     /// Загрузить L-систему из файла.
     pub fn load_lsystem(&mut self) {
-        // TODO: Реализовать загрузку файла
-        println!("Загрузка L-системы...");
-    }
+        let path = rfd::FileDialog::new()
+            .add_filter("Text File", &["txt"])
+            .pick_file();
 
-    /// Сгенерировать случайное дерево (L-система).
-    pub fn generate_random_tree(&mut self) {
-        // TODO: Реализовать генерацию случайного дерева
-        println!("Генерация случайного дерева...");
+        if let Some(path) = path {
+            let mut parser = l_system::Parser::new();
+            let config = parser.parse_l_system(path).expect("Parse error");
+            self.lsystem = Some(l_system::Lsystem::new(config));
+        }
     }
 
     /// Сгенерировать горный массив.
@@ -210,7 +215,7 @@ impl FractalsApp {
         println!("Генерация горного массива...");
         if let Some(area) = self.md_current_area {
             self.midpoint_displacement.init_for_area(area);
-            
+
             for _ in 0..self.md_iterations {
                 self.midpoint_displacement.iter_once();
             }
@@ -222,10 +227,10 @@ impl FractalsApp {
     pub fn iterate_fractal(&mut self) {
         match self.fractal_type {
             crate::app::FractalType::LSystem => {
-                // if let Some(lsystem) = &mut self.lsystem {
-                //     lsystem.iter_once();
-                //     self.current_iteration = lsystem.cur_iter_num();
-                // }
+                if let Some(lsystem) = &mut self.lsystem {
+                    lsystem.iter_once();
+                    self.current_iteration = lsystem.cur_iter_num();
+                }
                 println!("Итерация L-системы...");
             }
             crate::app::FractalType::MidpointDisplacement => {

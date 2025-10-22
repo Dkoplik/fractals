@@ -1,0 +1,5 @@
+F++F++F 60 0
+F -> F-F++F-F
+F -> FORWARD 1
+- -> ROTATE -
++ -> ROTATE +

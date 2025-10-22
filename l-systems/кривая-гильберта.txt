@@ -1,0 +1,7 @@
+X 90 0
+F -> F
+X -> -YF+XFX+FY-
+Y -> +XF-YFY-FX+
+F -> FORWARD 1
+- -> ROTATE -
++ -> ROTATE +
